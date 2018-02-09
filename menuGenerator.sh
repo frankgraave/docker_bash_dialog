@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # -------------------- Colors.
 RED='\033[00;31m'
@@ -14,7 +14,7 @@ RESTORE='\033[0m'
 # Configuration
 symbol="*"
 paddingSymbol=" "
-lineLength=75
+lineLength=80
 charsToOption=3
 charsToName=2
 
