@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Created by Jamie Cruwys on 21/02/2014.
+# Adopted and adjusted by Frank Graave.
+
 # -------------------- Colors.
 RED='\033[00;31m'
 GREEN='\033[00;32m'
