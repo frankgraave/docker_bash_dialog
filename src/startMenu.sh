@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Include the menuGenerator script.
-source ~/bash_scripts/menuGenerator.sh
+source ~/bashproject/docker_bash_dialog/src/menuGenerator.sh
 
 # Var to check if a file exists in the current dir.
 cpwd=$(pwd)
@@ -38,22 +38,38 @@ else
       declare -a options=("Start the $project containers" "Remove stopped containers (Use if you have trouble starting up)" "Exit");
       generateDialog "options" "Project: ${PWD##*/}" "${options[@]}"
 
-      echo "\r\nPlease select your option and press [ENTER]: "
-      read choice
+      echo "\r\nPlease select your option: "
+      # Read the choice.
+      old_stty_cfg=$(stty -g)
+      stty raw -echo ; answer=$(head -c 1) ; stty $old_stty_cfg
 
-      if [ "$choice" == "1" ]; then
+      # if [ "$choice" == "1" ]; then
+      if echo "$answer" | grep -iq "1" ; then
         clear
         docker-compose up -d
-        sh ~/bash_scripts/startMenu.sh
+        sh ~/bashproject/docker_bash_dialog/src/startMenu.sh
       fi
 
-      if [ "$choice" == "2" ]; then
-        docker-clean run
-        clear
-        sh ~/bash_scripts/startMenu.sh
+      # if [ "$choice" == "2" ]; then
+      if echo "$answer" | grep -iq "2" ; then
+        # Ask again, just to be sure you don't mess up.
+        echo "\r\nThis will delete all your stopped containers, do you wish to continue? (y/n)"
+        # Read the choice.
+        old_stty_cfg=$(stty -g)
+        stty raw -echo ; answer=$(head -c 1) ; stty $old_stty_cfg
+        if echo "$answer" | grep -iq "^y" ; then
+          docker ps -aq --no-trunc | xargs docker rm
+          clear
+          sh ~/bashproject/docker_bash_dialog/src/startMenu.sh
+        else
+          echo "Aborting..."
+          sleep 1s
+          sh ~/bashproject/docker_bash_dialog/src/startMenu.sh
+        fi
       fi
 
-      if [ "$choice" == "0" ]; then
+      # if [ "$choice" == "0" ]; then
+      if echo "$answer" | grep -iq "0" ; then
         break
         clear
         echo "\r\nProgram has been terminated. Notice: there are no containers running."
@@ -66,21 +82,26 @@ else
       declare -a options=("Show the active containers" "Stop all containers" "Exit");
       generateDialog "options" "Project: ${PWD##*/}" "${options[@]}"
 
-      echo "\r\nPlease select your option and press [ENTER]: "
-      read choice
+      echo "\r\nPlease select your option: "
+      # Read the choice.
+      old_stty_cfg=$(stty -g)
+      stty raw -echo ; answer=$(head -c 1) ; stty $old_stty_cfg
 
-      if [ "$choice" == "1" ]; then
+      # if [ "$choice" == "1" ]; then
+      if echo "$answer" | grep -iq "1" ; then
         clear
-        sh ~/bash_scripts/dockerManager.sh
+        sh ~/bashproject/docker_bash_dialog/src/dockerManager.sh
       fi
 
-      if [ "$choice" == "2" ]; then
+      # if [ "$choice" == "2" ]; then
+      if echo "$answer" | grep -iq "2" ; then
         docker-clean -s
         clear
-        sh ~/bash_scripts/startMenu.sh
+        sh ~/bashproject/docker_bash_dialog/src/startMenu.sh
       fi
 
-      if [ "$choice" == "0" ]; then
+      # if [ "$choice" == "0" ]; then
+      if echo "$answer" | grep -iq "0" ; then
         if [ "${containers[@]:1}" ]; then
           break
           clear
