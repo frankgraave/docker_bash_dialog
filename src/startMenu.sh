@@ -11,7 +11,7 @@ dockerComposeFileExists=(`find ./ -maxdepth 1 -name "docker-compose.yml"`)
 containers=$(docker ps | awk '{if(NR>1) print $NF}')
 
 # Folder name of current project.
-project=${PWD##*/}
+project=$(basename $(dirname ${PWD}))/$(basename ${PWD})
 
 # Start clean.
 echo "\r\n"
@@ -35,25 +35,29 @@ else
     # and there are no containers running, then we provide
     # the option to start the containers of this Project.
     if [ $dockerComposeFileExists ] && [ -z "${containers[@]:1}" ]; then
-      declare -a options=("Start the $project containers" "Remove stopped containers (Use if you have trouble starting up)" "Exit");
-      generateDialog "options" "Project: ${PWD##*/}" "${options[@]}"
+      declare -a options=("Check containers" "Start the ${PWD##*/} containers" "Remove stopped containers" "Exit");
+      generateDialog "options" "Project: $project" "${options[@]}"
 
       echo "\r\nPlease select your option: "
       # Read the choice.
       old_stty_cfg=$(stty -g)
       stty raw -echo ; answer=$(head -c 1) ; stty $old_stty_cfg
 
-      # if [ "$choice" == "1" ]; then
       if echo "$answer" | grep -iq "1" ; then
+        clear
+        sh ~/bashproject/docker_bash_dialog/src/dockerManager.sh
+      fi
+
+      if echo "$answer" | grep -iq "2" ; then
         clear
         docker-compose up -d
         sh ~/bashproject/docker_bash_dialog/src/startMenu.sh
       fi
 
-      # if [ "$choice" == "2" ]; then
-      if echo "$answer" | grep -iq "2" ; then
+      if echo "$answer" | grep -iq "3" ; then
         # Ask again, just to be sure you don't mess up.
         echo "\r\nThis will delete all your stopped containers, do you wish to continue? (y/n)"
+        echo "(Only use this if you have trouble starting up due to other docker projects)"
         # Read the choice.
         old_stty_cfg=$(stty -g)
         stty raw -echo ; answer=$(head -c 1) ; stty $old_stty_cfg
@@ -68,7 +72,6 @@ else
         fi
       fi
 
-      # if [ "$choice" == "0" ]; then
       if echo "$answer" | grep -iq "0" ; then
         break
         clear
@@ -87,20 +90,17 @@ else
       old_stty_cfg=$(stty -g)
       stty raw -echo ; answer=$(head -c 1) ; stty $old_stty_cfg
 
-      # if [ "$choice" == "1" ]; then
       if echo "$answer" | grep -iq "1" ; then
         clear
         sh ~/bashproject/docker_bash_dialog/src/dockerManager.sh
       fi
 
-      # if [ "$choice" == "2" ]; then
       if echo "$answer" | grep -iq "2" ; then
         docker-clean -s
         clear
         sh ~/bashproject/docker_bash_dialog/src/startMenu.sh
       fi
 
-      # if [ "$choice" == "0" ]; then
       if echo "$answer" | grep -iq "0" ; then
         if [ "${containers[@]:1}" ]; then
           break

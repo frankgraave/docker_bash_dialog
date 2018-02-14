@@ -14,26 +14,31 @@ LIGHTGRAY='\033[00;37m'
 RESTORE='\033[0m'
 
 # Folder name of current project.
-project=${PWD##*/}
+project=$(basename $(dirname ${PWD}))/$(basename ${PWD})
 
 # Check for file in current dir.
 dockerComposeFileExists=(`find ./ -maxdepth 1 -name "docker-compose.yml"`)
 
 if [ $dockerComposeFileExists ]; then
   # Create empty array to store container names.
-  declare -a containerNames=();
-
+  declare -a containerNames
   while IFS= read -r line; do
-    echo "${BLUE}Containers in docker-compose.yml file:${RESTORE}"
-    # Search docker-compose file for container names
-    # and remove trailing white space.
-    container= grep -F "container_name: " | sed -e 's/^[ \t]*//'
-    containerNames=("${containerNames[@]}" $container)
-    # echo ${containerNames[@]}
+    echo ""
+    echo "${LIGHTGRAY}All available containers in $project:${RESTORE}"
+    # Search docker-compose file for container names.
+    container=$(grep -F 'container_name: ' | sed -e 's/^[ \t]*//' | cut -d ":" -f 2)
+    # Append container in array.
+    containerNames=("${containerNames[@]}" "$container")
   done < "${PWD}/docker-compose.yml"
 else
   continue
 fi
+
+# Print array of containers found in the docker-compose.yml file.
+for container in $containerNames
+do
+  echo "${YELLOW} - $container  ${RESTORE}"
+done
 
 # Include the menuGenerator script.
 source ~/bashproject/docker_bash_dialog/src/menuGenerator.sh
@@ -52,7 +57,7 @@ if [ $dockerStatus == "Running" ]; then
   if [ -z "${containers[@]:1}" ]; then
     echo "\r\n ${RED}There are currently no containers running!${RESTORE} \r\n"
     # Declare an array.
-    declare -a options=("Return to menu" "Exit");
+    declare -a options=("Start the $project containers" "Return to menu" "Exit");
 
     # Generate the dialog with the script.
     generateDialog "options" "Project: $project - Choose an option" "${options[@]}"
@@ -64,8 +69,13 @@ if [ $dockerStatus == "Running" ]; then
     stty raw -echo ; answer=$(head -c 1) ; stty $old_stty_cfg
 
     # Do something with the input.
-    # if [ "$choice" == "1" ]; then
     if echo "$answer" | grep -iq "1" ; then
+      clear
+      docker-compose up -d
+      sh ~/bashproject/docker_bash_dialog/src/dockerManager.sh
+    fi
+    # Do something with the input.
+    if echo "$answer" | grep -iq "2" ; then
       unset $containers
       sh ~/bashproject/docker_bash_dialog/src/startMenu.sh
     fi
@@ -76,14 +86,14 @@ if [ $dockerStatus == "Running" ]; then
       echo "\r\nProgram has been terminated. Notice: there are no containers running."
     fi
   else
-    echo "\r\n"
-    echo "Docker machine IP: \r\n - ${PURPLE}$machine${RESTORE} \r\n"
-    echo "${RESTORE}Current running containers:"
+    echo ""
+    echo "${LIGHTGRAY}Docker machine is running at:${RESTORE} \r\n - ${GREEN}$machine${RESTORE} \r\n"
+    echo "${LIGHTGRAY}Current running containers:${RESTORE}"
     for container in $containers
     do
-      echo "${BLUE} - $container  ${RESTORE}"
+      echo "${GREEN} - $container  ${RESTORE}"
     done
-    echo "\r\n"
+    echo ""
 
     # If for any reason the the containers array
     # is empty then we provide the option to
@@ -102,7 +112,6 @@ if [ $dockerStatus == "Running" ]; then
       stty raw -echo ; answer=$(head -c 1) ; stty $old_stty_cfg
 
       # Do something with the input.
-      # if [ "$choice" == "1" ]; then
       if echo "$answer" | grep -iq "1" ; then
         unset $containers
         sh ~/bashproject/docker_bash_dialog/src/startMenu.sh
@@ -119,7 +128,7 @@ if [ $dockerStatus == "Running" ]; then
     # menu if you like.
     else
       # Declare an array.
-      declare -a options=("Stop all active containers" "Return to menu" "Exit");
+      declare -a options=("Stop all active containers" "Restart all $project containers" "Recreate all $project containers" "Return to menu" "Exit");
 
       # Generate the dialog with the script.
       generateDialog "options" "Project: $project - Choose an option" "${options[@]}"
@@ -131,15 +140,33 @@ if [ $dockerStatus == "Running" ]; then
       stty raw -echo ; answer=$(head -c 1) ; stty $old_stty_cfg
 
       # Do something with the input.
-      # if [ "$choice" == "1" ]; then
       if echo "$answer" | grep -iq "1" ; then
         unset $containers
         docker stop $(docker ps -a -q)
-        sh ~/bashproject/docker_bash_dialog/src/startMenu.sh
+        sh ~/bashproject/docker_bash_dialog/src/dockerManager.sh
       fi
 
-      # if [ "$choice" == "2" ]; then
       if echo "$answer" | grep -iq "2" ; then
+        unset $containers
+        clear
+        echo "Restarting containers..."
+        sleep 0.2s
+        docker-compose restart
+        sleep 0.5s
+        sh ~/bashproject/docker_bash_dialog/src/dockerManager.sh
+      fi
+
+      if echo "$answer" | grep -iq "3" ; then
+        unset $containers
+        clear
+        echo "Recreating containers..."
+        sleep 0.2s
+        docker-compose up -d --force-recreate
+        sleep 0.5s
+        sh ~/bashproject/docker_bash_dialog/src/dockerManager.sh
+      fi
+
+      if echo "$answer" | grep -iq "4" ; then
         unset $containers
         sh ~/bashproject/docker_bash_dialog/src/startMenu.sh
       fi
