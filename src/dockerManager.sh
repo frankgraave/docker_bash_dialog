@@ -24,7 +24,7 @@ if [ $dockerComposeFileExists ]; then
   declare -a containerNames
   while IFS= read -r line; do
     echo ""
-    echo "${LIGHTGRAY}All available containers in $project:${RESTORE}"
+    echo "${LIGHTGRAY}Available containers in the $project docker-compose.yml file:${RESTORE}"
     # Search docker-compose file for container names.
     container=$(grep -F 'container_name: ' | sed -e 's/^[ \t]*//' | cut -d ":" -f 2)
     # Append container in array.
@@ -51,13 +51,16 @@ if [ $dockerStatus == "Running" ]; then
   containers=$(docker ps | awk '{if(NR>1) print $NF}')
   machine=$(docker-machine ip)
   host=$(hostname)
+  # Get all stopped containers in a nice list.
+  echo "${LIGHTGRAY}\r\nAll the stopped containers:${RESTORE}"
+  stoppedContainers= docker ps -a -f "status=exited" --format "table {{.Names}}\t{{.Size}}"
 
   # Loop through all containers and provide a list with
   # the running containers if there are any.
   if [ -z "${containers[@]:1}" ]; then
     echo "\r\n ${RED}There are currently no containers running!${RESTORE} \r\n"
     # Declare an array.
-    declare -a options=("Start the $project containers" "Return to menu" "Exit");
+    declare -a options=("Start the $project containers" "Start a specific container" "Return to menu" "Exit");
 
     # Generate the dialog with the script.
     generateDialog "options" "Project: $project - Choose an option" "${options[@]}"
@@ -76,6 +79,13 @@ if [ $dockerStatus == "Running" ]; then
     fi
     # Do something with the input.
     if echo "$answer" | grep -iq "2" ; then
+      echo "\r\nType the name of the container you'd like to start:"
+      read container
+      docker start $container
+      sh ~/bashproject/docker_bash_dialog/src/dockerManager.sh
+    fi
+    # Do something with the input.
+    if echo "$answer" | grep -iq "3" ; then
       unset $containers
       sh ~/bashproject/docker_bash_dialog/src/startMenu.sh
     fi
@@ -128,7 +138,7 @@ if [ $dockerStatus == "Running" ]; then
     # menu if you like.
     else
       # Declare an array.
-      declare -a options=("Stop all active containers" "Restart all $project containers" "Recreate all $project containers" "Return to menu" "Exit");
+      declare -a options=("Refresh" "Stop all active containers" "Restart all $project containers" "Start a specific container" "Recreate all $project containers" "Return to menu" "Exit");
 
       # Generate the dialog with the script.
       generateDialog "options" "Project: $project - Choose an option" "${options[@]}"
@@ -142,11 +152,17 @@ if [ $dockerStatus == "Running" ]; then
       # Do something with the input.
       if echo "$answer" | grep -iq "1" ; then
         unset $containers
+        sh ~/bashproject/docker_bash_dialog/src/dockerManager.sh
+      fi
+
+      # Do something with the input.
+      if echo "$answer" | grep -iq "2" ; then
+        unset $containers
         docker stop $(docker ps -a -q)
         sh ~/bashproject/docker_bash_dialog/src/dockerManager.sh
       fi
 
-      if echo "$answer" | grep -iq "2" ; then
+      if echo "$answer" | grep -iq "3" ; then
         unset $containers
         clear
         echo "Restarting containers..."
@@ -156,7 +172,14 @@ if [ $dockerStatus == "Running" ]; then
         sh ~/bashproject/docker_bash_dialog/src/dockerManager.sh
       fi
 
-      if echo "$answer" | grep -iq "3" ; then
+      if echo "$answer" | grep -iq "4" ; then
+        echo "\r\nType the name of the container you'd like to start:"
+        read container
+        docker start $container
+        sh ~/bashproject/docker_bash_dialog/src/dockerManager.sh
+      fi
+
+      if echo "$answer" | grep -iq "5" ; then
         unset $containers
         clear
         echo "Recreating containers..."
@@ -166,7 +189,7 @@ if [ $dockerStatus == "Running" ]; then
         sh ~/bashproject/docker_bash_dialog/src/dockerManager.sh
       fi
 
-      if echo "$answer" | grep -iq "4" ; then
+      if echo "$answer" | grep -iq "6" ; then
         unset $containers
         sh ~/bashproject/docker_bash_dialog/src/startMenu.sh
       fi
